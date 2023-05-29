@@ -1,0 +1,30 @@
+{
+	"name": "@interrogate/commitlint-config-conventional-jira",
+	"version": "0.0.1",
+	"description": "A commitlint plugin for conventional commits and jira issues.",
+	"license": "MIT",
+	"type": "module",
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"format": "prettier .",
+		"lint": "eslint .",
+		"test": "vitest"
+	},
+	"dependencies": {
+		"axios": "1.4.0"
+	},
+	"devDependencies": {
+		"@commitlint/lint": "17.6.3",
+		"@commitlint/types": "17.4.4",
+		"@tsconfig/strictest": "2.0.1",
+		"@types/node": "20.2.5",
+		"@typescript-eslint/eslint-plugin": "5.59.8",
+		"eslint": "8.41.0",
+		"typescript": "5.0.4",
+		"vitest": "0.31.1"
+	},
+	"peerDependencies": {
+		"@commitlint/lint": ">=7.6.0"
+	}
+}
