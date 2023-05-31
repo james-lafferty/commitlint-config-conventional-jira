@@ -1,4 +1,4 @@
-import { Axios } from "axios"
+import { Axios, AxiosResponse } from "axios"
 import { getJiraConfig } from "./get-jira-config"
 
 type IssueDetail = {
@@ -6,15 +6,18 @@ type IssueDetail = {
 	parentKey?: string
 	issueStatus: string
 }
-export const getJiraIssueDetails = ((
-	cache = {} as Record<string, Record<string, IssueDetail>>
+const requestCache = <Record<string, Promise<AxiosResponse>>>{}
+const cache = <Record<string, Record<string, IssueDetail>>>{}
+export const getJiraIssueDetails = async (
+	issueIds: string[],
+	config = getJiraConfig()
 ) => {
-	return async (issueIds: string[], config = getJiraConfig()) => {
-		const { baseURL, password, username } = await config
-		const key = JSON.stringify({ baseURL, password, username, issueIds })
-		if (cache[key] != null) {
-			return cache[key]
-		}
+	const { baseURL, password, username } = await config
+	const key = JSON.stringify({ baseURL, password, username, issueIds })
+	if (cache[key] != null) {
+		return cache[key]
+	}
+	if (requestCache[key] == null) {
 		const axios = new Axios({
 			baseURL: `${baseURL}/rest/api/2`,
 			auth: {
@@ -22,35 +25,38 @@ export const getJiraIssueDetails = ((
 				password,
 			},
 		})
-		const { data, status } = await axios.get(
-			`/search?jql=issueKey in (${issueIds.join(",")})`
+		requestCache[key] = axios.get(
+			`/search?fields=issuetype,parent,status&jql=issueKey in (${issueIds.join(
+				","
+			)})`
 		)
-		if (status === 200) {
-			const { issues, warningMessages } = JSON.parse(data)
-			const result = <Record<string, IssueDetail>>{}
-			for (const issue of issues) {
-				const {
-					key,
-					fields: {
-						issuetype: { subtask: isSubtask },
-						parent,
-						status: { name: issueStatus },
-					},
-				} = issue
-				result[key] = {
-					isSubtask,
-					issueStatus,
-					parentKey: isSubtask ? parent.key : undefined,
-				}
-			}
-			if (warningMessages != null) {
-				for (const warningMessage of warningMessages) {
-					console.warn(warningMessage)
-				}
-			}
-			cache[key] = result
-			return result
-		}
-		return null
 	}
-})()
+	const { data, status } = (await requestCache[key]) as AxiosResponse
+	if (status === 200) {
+		const { issues, warningMessages } = JSON.parse(data)
+		const result = <Record<string, IssueDetail>>{}
+		for (const issue of issues) {
+			const {
+				key,
+				fields: {
+					issuetype: { subtask: isSubtask },
+					parent,
+					status: { name: issueStatus },
+				},
+			} = issue
+			result[key] = {
+				isSubtask,
+				issueStatus,
+				parentKey: isSubtask ? parent.key : undefined,
+			}
+		}
+		if (warningMessages != null) {
+			for (const warningMessage of warningMessages) {
+				console.warn(warningMessage)
+			}
+		}
+		cache[key] = result
+		return result
+	}
+	return null
+}

@@ -14,10 +14,14 @@ describe("", () => {
 	})
 	it("", async () => {
 		const { warnings } = await lintMessage("feat: EX-1 some value")
-		expect(warnings[0]?.message).toBe("Commit message should include at least one JIRA subtask")
+		expect(warnings[0]?.message).toBe(
+			"Commit message should include at least one JIRA subtask"
+		)
 	})
 	it("", async () => {
 		const { warnings } = await lintMessage("feat: EX-2 some value")
-		expect(warnings[0]?.message).toBe("Commit message should include at least one JIRA subtask")
+		expect(warnings[0]?.message).toBe(
+			"Commit message should include the subtask parent keys EX-1"
+		)
 	})
 })

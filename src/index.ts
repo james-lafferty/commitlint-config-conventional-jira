@@ -19,7 +19,11 @@ export default <Pick<QualifiedConfig, "extends" | "plugins" | "rules">>{
 		"jira-issue": [2, "always"],
 		"jira-issue-subtask": [1, "always", true],
 		"jira-issue-include-parent": [1, "always", true],
-		"jira-issue-status": [1, "always", ["In Progress", "In Review", "Under review"]]
+		"jira-issue-status": [
+			1,
+			"always",
+			["In Progress", "In Review", "Under review"],
+		],
 	},
 	plugins: {
 		jira: {
@@ -69,8 +73,46 @@ export default <Pick<QualifiedConfig, "extends" | "plugins" | "rules">>{
 							"Commit message should include at least one JIRA subtask",
 						]
 					}
-					// const issueIds = Object.keys(issueDetails)
-					// console.log(issueIds)
+					const parentKeys = subtasks
+						.map(({ parentKey }) => parentKey)
+						.filter((parentKey) => parentKey != null) as string[]
+					const issueKeys = Object.keys(issues)
+					const missingParentKeys = <string[]>[]
+					for (const key of parentKeys) {
+						if (!issueKeys.includes(key)) {
+							missingParentKeys.push(key)
+						}
+					}
+					if (missingParentKeys.length > 0) {
+						return [
+							false,
+							`Commit message should include the subtask parent keys ${missingParentKeys.join(
+								", "
+							)}`,
+						]
+					}
+					return [true]
+				},
+				"jira-issue-status": async ({ header }, _when, values) => {
+					const issues = await getJiraIssues(header)
+					if (typeof issues === "string") {
+						return [false, issues]
+					}
+					const incorrectStatuses = <string[]>[]
+					for (const issueRecord of Object.entries(issues)) {
+						const [issueKey, { issueStatus }] = issueRecord
+						if (!(values as unknown as string[]).includes(issueStatus)) {
+							incorrectStatuses.push(`${issueKey} is ${issueStatus}`)
+						}
+					}
+					if (incorrectStatuses.length > 0) {
+						return [
+							false,
+							`Some issues are not in the correct status: ${incorrectStatuses.join(
+								"; "
+							)}`,
+						]
+					}
 					return [true]
 				},
 			},
